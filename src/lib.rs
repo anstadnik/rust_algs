@@ -1,3 +1,1 @@
-mod leetcode;
-
-pub use leetcode::prelude;
+pub mod leetcode;
