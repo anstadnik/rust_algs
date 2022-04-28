@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::cmp::min;
+use std::fmt::Debug;
 use std::iter::repeat;
 use std::rc::Rc;
 
@@ -39,16 +40,41 @@ impl TreeNode {
     fn get_lvl(&self, lvl: u32) -> Vec<Option<i32>> {
         if lvl == 1 {
             return vec![
-                self.left.as_ref().map(|b| b.borrow().val),
-                self.right.as_ref().map(|b| b.borrow().val),
+                self.left.as_ref().map(|b| RefCell::borrow(b).val),
+                self.right.as_ref().map(|b| RefCell::borrow(b).val),
             ];
         }
         let b2v = |b: &&Tree| {
             b.as_ref()
-                .map(|b| b.borrow().get_lvl(lvl - 1))
+                .map(|b| RefCell::borrow(b).get_lvl(lvl - 1))
                 .unwrap_or_else(|| repeat(None).take(2_usize.pow(lvl - 1)).collect())
         };
         vec![&self.left, &self.right].iter().flat_map(b2v).collect()
+    }
+}
+
+impl ToString for TreeNode {
+    fn to_string(&self) -> String {
+        let mut v = vec![Some(self.val)];
+        for lvl in 1.. {
+            let mut lvl_vals: Vec<_> = self.get_lvl(lvl);
+            if lvl_vals.iter().all(|v| v.is_none()) {
+                break;
+            }
+            v.append(&mut lvl_vals);
+        }
+        v.truncate(v.iter().rposition(|v| v.is_some()).unwrap_or(0) + 1);
+        let v2s = |v: Option<i32>| {
+            v.map(|v| v.to_string())
+                .unwrap_or_else(|| "null".to_string())
+        };
+        v.into_iter().map(v2s).collect::<Vec<_>>().join(",")
+    }
+}
+
+impl Debug for TreeNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_string())
     }
 }
 
@@ -93,21 +119,7 @@ pub fn tree2str(tree: &Tree) -> String {
         return "[]".to_string();
     }
 
-    let tree = tree.as_ref().unwrap().borrow();
-    let mut v = vec![Some(tree.val)];
-    for lvl in 1.. {
-        let mut lvl_vals: Vec<_> = tree.get_lvl(lvl);
-        if lvl_vals.iter().all(|v| v.is_none()) {
-            break;
-        }
-        v.append(&mut lvl_vals);
-    }
-    v.truncate(v.iter().rposition(|v| v.is_some()).unwrap_or(0) + 1);
-    let v2s = |v: Option<i32>| {
-        v.map(|v| v.to_string())
-            .unwrap_or_else(|| "null".to_string())
-    };
-    format!("[{}]", v.into_iter().map(v2s).collect::<Vec<_>>().join(","))
+    format!("[{}]", RefCell::borrow(tree.as_ref().unwrap()).to_string())
 }
 
 #[cfg(test)]
