@@ -61,4 +61,9 @@ impl DisjointSet {
         });
         items_in_root
     }
+
+    pub fn clear(&mut self) {
+        self.root.iter_mut().enumerate().for_each(|(i, v)| *v = i);
+        self.rank.fill(1);
+    }
 }
